@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Quetza Geo — Evidencia Fotográfica Inteligente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --quetza-bg: #030709;
+      --quetza-cyan: #00f5d4;
+    }
+    body {
+      background-color: var(--quetza-bg);
+      color: #f8fafc;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .quetza-glow {
+      box-shadow: 0 0 24px rgba(0, 245, 212, 0.18);
+    }
+    .quetza-border {
+      border-color: rgba(0, 245, 212, 0.28);
+    }
+    video, canvas {
+      max-height: 66vh;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between font-sans select-none">
+
+  <!-- Cabecera con Logo Oficial Quetza Geo -->
+  <header class="px-3.5 py-2.5 bg-[#060d11]/95 border-b quetza-border flex items-center justify-between gap-2.5">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <img id="header-logo" src="./logo-quetza.png" alt="Quetza Geo"
+        class="h-11 w-auto rounded-lg border border-cyan-400/40 object-contain bg-[#030709] shrink-0 quetza-glow"
+        onerror="this.classList.add('hidden'); document.getElementById('header-logo-fallback').classList.remove('hidden');" />
+
+      <div id="header-logo-fallback" class="hidden w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-900/40 border border-cyan-400/40 flex items-center justify-center shrink-0 quetza-glow">
+        <svg viewBox="0 0 64 64" class="w-7 h-7" fill="none">
+          <rect x="8" y="18" width="48" height="34" rx="7" stroke="#E2E8F0" stroke-width="3.5"/>
+          <path d="M22 18L26 12H38L42 18" stroke="#E2E8F0" stroke-width="3.5" stroke-linejoin="round"/>
+          <circle cx="32" cy="35" r="11" stroke="#00F5D4" stroke-width="2.5"/>
+          <path d="M32 27C28.7 27 26 29.7 26 33C26 37.5 32 43 32 43C32 43 38 37.5 38 33C38 29.7 35.3 27 32 27Z" fill="#00F5D4"/>
+          <circle cx="32" cy="33" r="2.2" fill="#030709"/>
+        </svg>
+      </div>
+
+      <div class="min-w-0">
+        <div class="flex items-center gap-1.5">
+          <span class="font-black tracking-wider text-sm text-white">QUETZA</span>
+          <span class="font-black tracking-wider text-sm text-[#00f5d4]">GEO</span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/35 text-cyan-300 font-mono">INMUTABLE</span>
+        </div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span id="gps-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+          <p id="gps-status" class="text-[11px] text-amber-300 truncate">Fijando GPS y colonia...</p>
+        </div>
+      </div>
+    </div>
+
+    <button id="btn-flip" type="button" title="Cambiar cámara"
+      class="p-2.5 rounded-xl bg-[#0c1820] hover:bg-[#122430] border border-cyan-500/25 active:scale-95 text-cyan-300 transition shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- Área Central -->
+  <main class="flex-1 flex flex-col items-center justify-center px-3 py-2.5 overflow-hidden">
+    
+    <!-- VISTA 1: Visor en Vivo Bloqueado -->
+    <div id="camera-container" class="w-full max-w-lg flex flex-col items-center">
+      <div class="relative w-full rounded-2xl overflow-hidden bg-[#071015] border quetza-border shadow-2xl flex items-center justify-center min-h-[360px]">
+        <video id="video" autoplay playsinline muted class="w-full h-auto block"></video>
+        
+        <div class="absolute top-3 left-3 right-3 flex justify-between items-center gap-2 pointer-events-none">
+          <span class="px-2.5 py-1 rounded-lg bg-black/75 border border-cyan-400/30 text-[10px] font-mono text-cyan-300">
+            CÁMARA EN VIVO
+          </span>
+          <span id="live-ntp-status" class="px-2.5 py-1 rounded-lg bg-black/75 border border-amber-400/30 text-[10px] font-mono text-amber-300">
+            Servidor: Sincronizando...
+          </span>
+        </div>
+
+        <div class="absolute bottom-3 left-3 right-3 bg-black/82 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-cyan-400/30 text-[11px] font-mono pointer-events-none space-y-1">
+          <div class="flex justify-between items-center text-[#00f5d4] font-bold">
+            <span id="live-overlay-time">--/--/---- --:--:--</span>
+            <span id="live-overlay-acc">Precisión: -- m</span>
+          </div>
+          <div class="text-white text-[11px] font-sans font-semibold truncate">
+            Colonia: <span id="live-overlay-colonia" class="text-yellow-300">Detectando...</span>
+          </div>
+          <div class="text-zinc-200 text-[11px] font-sans truncate">
+            Municipio: <span id="live-overlay-municipio" class="text-zinc-100">Detectando...</span>
+          </div>
+          <div id="live-overlay-coords" class="text-zinc-400 text-[10px]">
+            Lat: --.------ , Lon: ---.------
+          </div>
+        </div>
+
+        <div id="camera-error" class="hidden p-6 text-center space-y-3 bg-zinc-950/95 inset-0 flex flex-col items-center justify-center">
+          <p class="text-sm text-red-400 font-bold">Cámara en vivo requerida</p>
+          <p id="camera-error-text" class="text-xs text-zinc-400 max-w-xs">
+            No se permite cargar imágenes de galería. Habilita el acceso a la cámara en tu navegador.
+          </p>
+          <button type="button" onclick="startCamera()"
+            class="px-4 py-2 rounded-xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold">
+            Reintentar Cámara
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VISTA 2: Foto Impresa con Sello Quetza Geo + QR -->
+    <div id="preview-container" class="hidden w-full max-w-lg flex flex-col items-center space-y-2">
+      <div class="w-full rounded-2xl overflow-hidden bg-[#071015] border quetza-border shadow-2xl flex items-center justify-center">
+        <canvas id="canvas" class="w-full h-auto block"></canvas>
+      </div>
+
+      <div class="w-full bg-[#081015] border border-cyan-500/25 rounded-xl p-2.5 text-[11px] font-mono space-y-1">
+        <div class="flex justify-between text-cyan-300">
+          <span>ID: <strong id="meta-id">--</strong></span>
+          <span id="meta-zona" class="truncate max-w-[60%] text-right">--</span>
+        </div>
+        <div class="text-zinc-400 truncate">
+          SHA-256: <span id="meta-sha" class="text-emerald-400">--</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Controles Inferiores -->
+  <footer class="px-4 py-3.5 bg-[#060d11]/95 border-t quetza-border">
+    
+    <div id="capture-controls" class="max-w-lg mx-auto">
+      <button id="btn-capture" type="button" disabled
+        class="w-full py-4 px-6 rounded-2xl bg-zinc-800 text-zinc-500 font-black text-sm tracking-wide uppercase flex items-center justify-center gap-2.5 transition cursor-not-allowed">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span id="btn-capture-label">Esperando GPS y Ubicación...</span>
+      </button>
+    </div>
+
+    <div id="share-controls" class="hidden max-w-lg mx-auto space-y-2.5">
+      <button id="btn-whatsapp" type="button"
+        class="w-full py-3.5 px-5 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-[0.98] text-zinc-950 font-extrabold text-sm tracking-wide shadow-lg flex items-center justify-center gap-2 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.1.824z"/>
+        </svg>
+        Compartir Evidencia en WhatsApp
+      </button>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <button id="btn-download" type="button"
+          class="py-3 px-4 rounded-xl bg-[#0c1820] hover:bg-[#132633] border border-cyan-500/25 active:scale-[0.98] text-cyan-200 font-semibold text-xs flex items-center justify-center gap-1.5 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Descargar JPG
+        </button>
+
+        <button id="btn-retake" type="button"
+          class="py-3 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 active:scale-[0.98] text-zinc-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Nueva Toma
+        </button>
+      </div>
+    </div>
+
+  </footer>
+
+  <script>
+    // --- Precarga del Logo Oficial (si existe logo-quetza.png en el servidor) ---
+    let safeBrandLogoImg = null;
+    (async function preloadBrandLogo() {
+      try {
+        const res = await fetch('./logo-quetza.png', { cache: 'force-cache' });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        const objUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => { safeBrandLogoImg = img; };
+        img.src = objUrl;
+      } catch (_) {}
+    })();
+
+    // --- Generador QR ISO-18004 Corregido (Formato MSB-first + Nivel M) ---
+    const InlineQR = (() => {
+      const EXP = new Uint8Array(512);
+      const LOG = new Uint8Array(256);
+      let x = 1;
+      for (let i = 0; i < 255; i++) {
+        EXP[i] = x;
+        LOG[x] = i;
+        x <<= 1;
+        if (x & 0x100) x ^= 0x11d;
+      }
+      for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+
+      function gfMul(a, b) {
+        return a === 0 || b === 0 ? 0 : EXP[LOG[a] + LOG[b]];
+      }
+
+      function rsGenPoly(ecLen) {
+        let poly = [1];
+        for (let i = 0; i < ecLen; i++) {
+          const next = new Array(poly.length + 1).fill(0);
+          const factor = EXP[i];
+          for (let j = 0; j < poly.length; j++) {
+            next[j] ^= poly[j];
+            next[j + 1] ^= gfMul(poly[j], factor);
+          }
+          poly = next;
+        }
+        return poly;
+      }
+
+      function rsEncode(data, ecLen) {
+        const gen = rsGenPoly(ecLen);
+        const res = new Uint8Array(ecLen);
+        for (let i = 0; i < data.length; i++) {
+          const coef = data[i] ^ res[0];
+          for (let j = 0; j < ecLen - 1; j++) {
+            res[j] = res[j + 1] ^ gfMul(gen[j + 1], coef);
+          }
+          res[ecLen - 1] = gfMul(gen[ecLen], coef);
+        }
+        return res;
+      }
+
+      const V_SPEC = [
+        null,
+        [16, 10, 1, 16, 0, 0],
+        [28, 16, 1, 28, 0, 0],
+        [44, 26, 1, 44, 0, 0],
+        [64, 18, 2, 32, 0, 0],
+        [86, 24, 2, 43, 0, 0],
+        [108, 16, 4, 27, 0, 0],
+        [124, 18, 4, 31, 0, 0],
+        [154, 22, 2, 38, 2, 39],
+        [182, 22, 3, 36, 2, 37],
+        [216, 26, 4, 43, 1, 44],
+        [254, 30, 1, 50, 4, 51],
+        [290, 22, 6, 36, 2, 37]
+      ];
+
+      const VERSION_INFO = {
+        7: 0x07c94, 8: 0x085bc, 9: 0x09a99, 10: 0x0a4d3, 11: 0x0bbf6, 12: 0x0c762
+      };
+
+      function getAlignCoords(v) {
+        if (v === 1) return [];
+        if (v <= 6) return [6, 4 * v + 10];
+        return [6, 2 * v + 8, 4 * v + 10];
+      }
+
+      function generateMatrix(text) {
+        const bytes = new TextEncoder().encode(text);
+        let ver = 1;
+        while (ver < V_SPEC.length) {
+          const headerBytes = ver <= 9 ? 2 : 3;
+          if (bytes.length + headerBytes <= V_SPEC[ver][0]) break;
+          ver++;
+        }
+        if (ver >= V_SPEC.length) ver = V_SPEC.length - 1;
+
+        const [totalData, ecLen, g1B, g1D, g2B, g2D] = V_SPEC[ver];
+        const bits = [];
+        const pushBits = (val, len) => {
+          for (let i = len - 1; i >= 0; i--) bits.push((val >>> i) & 1);
+        };
+
+        pushBits(0b0100, 4);
+        pushBits(bytes.length, ver <= 9 ? 8 : 16);
+        const maxPayloadBytes = totalData - (ver <= 9 ? 2 : 3);
+        const usableLen = Math.min(bytes.length, maxPayloadBytes);
+        for (let i = 0; i < usableLen; i++) pushBits(bytes[i], 8);
+        for (let i = 0; i < 4 && bits.length < totalData * 8; i++) bits.push(0);
+        while (bits.length % 8 !== 0) bits.push(0);
+
+        const dataBytes = [];
+        for (let i = 0; i < bits.length; i += 8) {
+          let b = 0;
+          for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+          dataBytes.push(b);
+        }
+        const pads = [0xec, 0x11];
+        let padIdx = 0;
+        while (dataBytes.length < totalData) {
+          dataBytes.push(pads[padIdx++ % 2]);
+        }
+
+        const dataBlocks = [];
+        const ecBlocks = [];
+        let cursor = 0;
+        for (let i = 0; i < g1B; i++) {
+          const blk = dataBytes.slice(cursor, cursor + g1D);
+          cursor += g1D;
+          dataBlocks.push(blk);
+          ecBlocks.push(rsEncode(blk, ecLen));
+        }
+        for (let i = 0; i < g2B; i++) {
+          const blk = dataBytes.slice(cursor, cursor + g2D);
+          cursor += g2D;
+          dataBlocks.push(blk);
+          ecBlocks.push(rsEncode(blk, ecLen));
+        }
+
+        const interleaved = [];
+        const maxDataLen = Math.max(g1D, g2D);
+        for (let i = 0; i < maxDataLen; i++) {
+          for (let b = 0; b < dataBlocks.length; b++) {
+            if (i < dataBlocks[b].length) interleaved.push(dataBlocks[b][i]);
+          }
+        }
+        for (let i = 0; i < ecLen; i++) {
+          for (let b = 0; b < ecBlocks.length; b++) {
+            interleaved.push(ecBlocks[b][i]);
+          }
+        }
+
+        const N = 17 + 4 * ver;
+        const grid = Array.from({ length: N }, () => new Int8Array(N).fill(-1));
+        const func = Array.from({ length: N }, () => new Uint8Array(N));
+
+        function placeFinder(r0, c0) {
+          for (let r = -1; r <= 7; r++) {
+            for (let c = -1; c <= 7; c++) {
+              const rr = r0 + r, cc = c0 + c;
+              if (rr < 0 || rr >= N || cc < 0 || cc >= N) continue;
+              const dark = r >= 0 && r <= 6 && c >= 0 && c <= 6 &&
+                (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+              grid[rr][cc] = dark ? 1 : 0;
+              func[rr][cc] = 1;
+            }
+          }
+        }
+        placeFinder(0, 0);
+        placeFinder(0, N - 7);
+        placeFinder(N - 7, 0);
+
+        const aligns = getAlignCoords(ver);
+        for (const r0 of aligns) {
+          for (const c0 of aligns) {
+            if (func[r0][c0]) continue;
+            for (let r = -2; r <= 2; r++) {
+              for (let c = -2; c <= 2; c++) {
+                const dark = Math.abs(r) === 2 || Math.abs(c) === 2 || (r === 0 && c === 0);
+                grid[r0 + r][c0 + c] = dark ? 1 : 0;
+                func[r0 + r][c0 + c] = 1;
+              }
+            }
+          }
+        }
+
+        for (let i = 8; i < N - 8; i++) {
+          if (!func[6][i]) { grid[6][i] = i % 2 === 0 ? 1 : 0; func[6][i] = 1; }
+          if (!func[i][6]) { grid[i][6] = i % 2 === 0 ? 1 : 0; func[i][6] = 1; }
+        }
+
+        grid[4 * ver + 9][8] = 1;
+        func[4 * ver + 9][8] = 1;
+
+        for (let i = 0; i < 9; i++) {
+          if (!func[8][i]) func[8][i] = 1;
+          if (!func[i][8]) func[i][8] = 1;
+        }
+        for (let i = 0; i < 8; i++) {
+          func[8][N - 1 - i] = 1;
+          func[N - 1 - i][8] = 1;
+        }
+        if (ver >= 7) {
+          const vBits = VERSION_INFO[ver];
+          for (let i = 0; i < 18; i++) {
+            const bit = (vBits >>> i) & 1;
+            const r1 = N - 11 + (i % 3), c1 = Math.floor(i / 3);
+            grid[r1][c1] = bit; func[r1][c1] = 1;
+            grid[c1][r1] = bit; func[c1][r1] = 1;
+          }
+        }
+
+        let bitIdx = 0;
+        const totalBits = interleaved.length * 8;
+        let dir = -1;
+        for (let col = N - 1; col >= 1; col -= 2) {
+          if (col === 6) col--;
+          for (let step = 0; step < N; step++) {
+            const r = dir === -1 ? N - 1 - step : step;
+            for (let dc = 0; dc < 2; dc++) {
+              const c = col - dc;
+              if (!func[r][c]) {
+                let b = 0;
+                if (bitIdx < totalBits) {
+                  b = (interleaved[bitIdx >>> 3] >>> (7 - (bitIdx & 7))) & 1;
+                  bitIdx++;
+                }
+                if ((r + c) % 2 === 0) b ^= 1;
+                grid[r][c] = b;
+              }
+            }
+          }
+          dir = -dir;
+        }
+
+        // Formato ISO-18004: Nivel M (00) + Máscara 0 (000) -> 0x5412 (MSB a LSB)
+        const fmt = 0x5412;
+        const fCoords1 = [
+          [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 7], [8, 8],
+          [7, 8], [5, 8], [4, 8], [3, 8], [2, 8], [1, 8], [0, 8]
+        ];
+        const fCoords2 = [
+          [N - 1, 8], [N - 2, 8], [N - 3, 8], [N - 4, 8], [N - 5, 8], [N - 6, 8], [N - 7, 8],
+          [8, N - 8], [8, N - 7], [8, N - 6], [8, N - 5], [8, N - 4], [8, N - 3], [8, N - 2], [8, N - 1]
+        ];
+        for (let i = 0; i < 15; i++) {
+          const bit = (fmt >>> (14 - i)) & 1;
+          grid[fCoords1[i][0]][fCoords1[i][1]] = bit;
+          grid[fCoords2[i][0]][fCoords2[i][1]] = bit;
+        }
+
+        return grid;
+      }
+
+      return { generateMatrix };
+    })();
+
+    // --- Respaldo Criptográfico SHA-256 ---
+    function sha256PureJS(uint8Array) {
+      const K = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+      ];
+      let H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+      const l = uint8Array.length;
+      const bitLen = l * 8;
+      const totalLen = (((l + 8) >> 6) + 1) << 6;
+      const msg = new Uint8Array(totalLen);
+      msg.set(uint8Array);
+      msg[l] = 0x80;
+      const view = new DataView(msg.buffer);
+      view.setUint32(totalLen - 8, Math.floor(bitLen / 0x100000000), false);
+      view.setUint32(totalLen - 4, bitLen >>> 0, false);
+
+      const rotr = (n, x) => (x >>> n) | (x << (32 - n));
+      const W = new Uint32Array(64);
+
+      for (let offset = 0; offset < totalLen; offset += 64) {
+        for (let i = 0; i < 16; i++) W[i] = view.getUint32(offset + i * 4, false);
+        for (let i = 16; i < 64; i++) {
+          const s0 = rotr(7, W[i - 15]) ^ rotr(18, W[i - 15]) ^ (W[i - 15] >>> 3);
+          const s1 = rotr(17, W[i - 2]) ^ rotr(19, W[i - 2]) ^ (W[i - 2] >>> 10);
+          W[i] = (W[i - 16] + s0 + W[i - 7] + s1) >>> 0;
+        }
+        let [a, b, c, d, e, f, g, h] = H;
+        for (let i = 0; i < 64; i++) {
+          const S1 = rotr(6, e) ^ rotr(11, e) ^ rotr(25, e);
+          const ch = (e & f) ^ (~e & g);
+          const temp1 = (h + S1 + ch + K[i] + W[i]) >>> 0;
+          const S0 = rotr(2, a) ^ rotr(13, a) ^ rotr(22, a);
+          const maj = (a & b) ^ (a & c) ^ (b & c);
+          const temp2 = (S0 + maj) >>> 0;
+          h = g; g = f; f = e; e = (d + temp1) >>> 0;
+          d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+        }
+        H = [
+          (H[0] + a) >>> 0, (H[1] + b) >>> 0, (H[2] + c) >>> 0, (H[3] + d) >>> 0,
+          (H[4] + e) >>> 0, (H[5] + f) >>> 0, (H[6] + g) >>> 0, (H[7] + h) >>> 0
+        ];
+      }
+      return H.map((v) => v.toString(16).padStart(8, '0')).join('');
+    }
+
+    // --- Estado Inmutable ---
+    const state = {
+      stream: null,
+      facingMode: 'environment',
+      cameraReady: false,
+      gpsReady: false,
+      geoResolved: false,
+      serverSynced: false,
+      lat: null,
+      lon: null,
+      accuracy: null,
+      colonia: 'Detectando...',
+      municipio: 'Detectando...',
+      lastGeocodeLat: null,
+      lastGeocodeLon: null,
+      serverOffsetMs: 0,
+      capturedBlob: null,
+      capturedFilename: '',
+      capturedRecord: null
+    };
+
+    // --- Referencias DOM ---
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const gpsDot = document.getElementById('gps-dot');
+    const gpsStatus = document.getElementById('gps-status');
+    const liveOverlayTime = document.getElementById('live-overlay-time');
+    const liveOverlayAcc = document.getElementById('live-overlay-acc');
+    const liveOverlayColonia = document.getElementById('live-overlay-colonia');
+    const liveOverlayMunicipio = document.getElementById('live-overlay-municipio');
+    const liveOverlayCoords = document.getElementById('live-overlay-coords');
+    const liveNtpStatus = document.getElementById('live-ntp-status');
+    const btnCapture = document.getElementById('btn-capture');
+    const btnCaptureLabel = document.getElementById('btn-capture-label');
+    const cameraContainer = document.getElementById('camera-container');
+    const previewContainer = document.getElementById('preview-container');
+    const captureControls = document.getElementById('capture-controls');
+    const shareControls = document.getElementById('share-controls');
+    const cameraError = document.getElementById('camera-error');
+    const cameraErrorText = document.getElementById('camera-error-text');
+
+    function evaluateShutterLock() {
+      const ready = state.cameraReady && state.gpsReady && state.geoResolved && state.serverSynced;
+      btnCapture.disabled = !ready;
+
+      if (ready) {
+        btnCapture.className =
+          'w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#00f5d4] to-[#00bbf9] hover:brightness-110 active:scale-[0.98] text-[#030709] font-black text-sm tracking-wide uppercase shadow-lg shadow-cyan-950/60 flex items-center justify-center gap-2.5 transition cursor-pointer';
+        btnCaptureLabel.textContent = 'Tomar Foto Certificada';
+      } else {
+        btnCapture.className =
+          'w-full py-4 px-6 rounded-2xl bg-zinc-800 text-zinc-500 font-black text-sm tracking-wide uppercase flex items-center justify-center gap-2.5 transition cursor-not-allowed';
+        if (!state.cameraReady) {
+          btnCaptureLabel.textContent = 'Iniciando Cámara en Vivo...';
+        } else if (!state.gpsReady) {
+          btnCaptureLabel.textContent = 'Fijando Señal GPS...';
+        } else if (!state.geoResolved) {
+          btnCaptureLabel.textContent = 'Identificando Colonia y Municipio...';
+        } else {
+          btnCaptureLabel.textContent = 'Sincronizando Hora de Servidor...';
+        }
+      }
+    }
+
+    function formatDateTime(dateObj) {
+      const pad = (n) => String(n).padStart(2, '0');
+      const d = `${pad(dateObj.getDate())}/${pad(dateObj.getMonth() + 1)}/${dateObj.getFullYear()}`;
+      const t = `${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}:${pad(dateObj.getSeconds())}`;
+      return `${d} ${t}`;
+    }
+
+    async function syncServerClock() {
+      try {
+        const t0 = Date.now();
+        const res = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+        const dateHeader = res.headers.get('date');
+        const t1 = Date.now();
+        if (dateHeader) {
+          const serverMs = new Date(dateHeader).getTime();
+          if (!isNaN(serverMs)) {
+            state.serverOffsetMs = (serverMs + (t1 - t0) / 2) - t1;
+            state.serverSynced = true;
+            liveNtpStatus.textContent = 'Servidor: Sincronizado ✓';
+            liveNtpStatus.className = 'px-2.5 py-1 rounded-lg bg-black/75 border border-emerald-400/40 text-[10px] font-mono text-[#00f5d4]';
+            evaluateShutterLock();
+            return;
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const t0 = Date.now();
+        const res = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=America/Mexico_City', { cache: 'no-store' });
+        const data = await res.json();
+        const t1 = Date.now();
+        const serverMs = new Date(data.dateTime).getTime();
+        if (!isNaN(serverMs)) {
+          state.serverOffsetMs = (serverMs + (t1 - t0) / 2) - t1;
+          state.serverSynced = true;
+          liveNtpStatus.textContent = 'Servidor: Sincronizado ✓';
+          liveNtpStatus.className = 'px-2.5 py-1 rounded-lg bg-black/75 border border-emerald-400/40 text-[10px] font-mono text-[#00f5d4]';
+          evaluateShutterLock();
+        }
+      } catch (_) {
+        liveNtpStatus.textContent = 'Servidor: Sin Conexión';
+        liveNtpStatus.className = 'px-2.5 py-1 rounded-lg bg-black/75 border border-red-400/40 text-[10px] font-mono text-red-400';
+      }
+    }
+
+    setInterval(() => {
+      liveOverlayTime.textContent = formatDateTime(new Date());
+    }, 1000);
+    liveOverlayTime.textContent = formatDateTime(new Date());
+
+    function generateUniqueId() {
+      const now = new Date(Date.now() + state.serverOffsetMs);
+      const pad = (n) => String(n).padStart(2, '0');
+      const datePart = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`;
+      const randBytes = new Uint8Array(4);
+      crypto.getRandomValues(randBytes);
+      const hexPart = Array.from(randBytes).map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+      return `QG-${datePart}-${hexPart}`;
+    }
+
+    async function computeSHA256FromCanvas(sourceCanvas) {
+      const rawBlob = await new Promise((resolve) => sourceCanvas.toBlob(resolve, 'image/jpeg', 0.96));
+      if (!rawBlob) throw new Error('No se pudo leer el flujo de la cámara.');
+      const arrayBuffer = await rawBlob.arrayBuffer();
+
+      if (window.crypto && window.crypto.subtle) {
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', arrayBuffer);
+        return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, '0')).join('');
+      }
+      return sha256PureJS(new Uint8Array(arrayBuffer));
+    }
+
+    // --- Validador de Nombre de Colonia Real ---
+    function isValidColonia(name, municipioName) {
+      if (!name) return false;
+      const clean = name.trim();
+      const lower = clean.toLowerCase();
+      if (clean.length < 3) return false;
+      if (/^\d+$/.test(clean)) return false;
+      if (lower.startsWith('municipio de ')) return false;
+      if (lower === 'jalisco' || lower === 'méxico' || lower === 'mexico') return false;
+      if (municipioName && lower === municipioName.toLowerCase()) return false;
+      return true;
+    }
+
+    // --- Resolución de Colonia/Fraccionamiento y Municipio (ArcGIS + Nominatim) ---
+    async function resolveColoniaAndMunicipio(lat, lon) {
+      let colonia = '';
+      let municipio = '';
+      let estado = '';
+
+      // 1. ArcGIS World Reverse Geocoding (excelente cobertura de colonias y fraccionamientos en Jalisco)
+      try {
+        const arcUrl = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lon},${lat}&langCode=es`;
+        const arcRes = await fetch(arcUrl);
+        if (arcRes.ok) {
+          const arcData = await arcRes.json();
+          const addr = arcData.address || {};
+          municipio = (addr.City || addr.Subregion || '').replace(/^Municipio de\s+/i, '').trim();
+          estado = (addr.Region || '').trim();
+
+          const arcCol = (addr.Neighborhood || addr.District || '').trim();
+          if (isValidColonia(arcCol, municipio)) {
+            colonia = arcCol;
+          }
+        }
+      } catch (_) {}
+
+      // 2. Complementar con OpenStreetMap Nominatim si falta Colonia o Municipio
+      if (!colonia || !municipio) {
+        try {
+          const osmRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+            { headers: { 'Accept-Language': 'es-MX,es' } }
+          );
+          if (osmRes.ok) {
+            const data = await osmRes.json();
+            const a = data.address || {};
+
+            if (!municipio) {
+              municipio = (a.city || a.town || a.village || a.municipality || '').replace(/^Municipio de\s+/i, '').trim();
+            }
+            if (!estado) {
+              estado = (a.state || '').trim();
+            }
+
+            const candidates = [a.residential, a.neighbourhood, a.suburb, a.quarter, a.hamlet, a.city_district];
+            for (const cand of candidates) {
+              if (!colonia && isValidColonia(cand, municipio)) {
+                colonia = cand.trim();
+                break;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      state.colonia = colonia || 'Colonia no catalogada en mapa';
+      state.municipio = [municipio, estado].filter(Boolean).join(', ') || 'Municipio no determinado';
+      state.geoResolved = true;
+
+      liveOverlayColonia.textContent = state.colonia;
+      liveOverlayMunicipio.textContent = state.municipio;
+      evaluateShutterLock();
+    }
+
+    function startGPS() {
+      if (!('geolocation' in navigator)) {
+        gpsDot.className = 'w-2 h-2 rounded-full bg-red-500 shrink-0';
+        gpsStatus.textContent = 'Navegador sin soporte GPS';
+        return;
+      }
+
+      navigator.geolocation.watchPosition(
+        async (pos) => {
+          state.lat = pos.coords.latitude;
+          state.lon = pos.coords.longitude;
+          state.accuracy = Number(pos.coords.accuracy.toFixed(1));
+          state.gpsReady = true;
+
+          gpsDot.className = 'w-2 h-2 rounded-full bg-[#00f5d4] shrink-0';
+          gpsStatus.textContent = `GPS Activo • Precisión ±${state.accuracy} m`;
+          gpsStatus.className = 'text-[11px] text-[#00f5d4] truncate font-medium';
+
+          liveOverlayAcc.textContent = `Precisión: ±${state.accuracy} m`;
+          liveOverlayCoords.textContent = `Lat: ${state.lat.toFixed(6)} , Lon: ${state.lon.toFixed(6)}`;
+
+          const movedEnough =
+            state.lastGeocodeLat === null ||
+            Math.abs(state.lat - state.lastGeocodeLat) > 0.00015 ||
+            Math.abs(state.lon - state.lastGeocodeLon) > 0.00015;
+
+          if (movedEnough) {
+            state.lastGeocodeLat = state.lat;
+            state.lastGeocodeLon = state.lon;
+            await resolveColoniaAndMunicipio(state.lat, state.lon);
+          }
+          evaluateShutterLock();
+        },
+        (err) => {
+          state.gpsReady = false;
+          evaluateShutterLock();
+          gpsDot.className = 'w-2 h-2 rounded-full bg-red-500 shrink-0';
+          gpsStatus.className = 'text-[11px] text-red-400 truncate';
+          gpsStatus.textContent = err.code === 1
+            ? 'Permiso GPS denegado (Obligatorio)'
+            : 'Buscando satélites GPS...';
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    async function startCamera() {
+      state.cameraReady = false;
+      evaluateShutterLock();
+
+      if (state.stream) {
+        state.stream.getTracks().forEach((track) => track.stop());
+      }
+      cameraError.classList.add('hidden');
+      video.classList.remove('hidden');
+
+      try {
+        state.stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: state.facingMode },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+        video.srcObject = state.stream;
+        video.onloadedmetadata = () => {
+          state.cameraReady = true;
+          evaluateShutterLock();
+        };
+      } catch (err) {
+        video.classList.add('hidden');
+        cameraError.classList.remove('hidden');
+        cameraErrorText.textContent = `Cámara bloqueada (${err.name}). No se permite subir fotos de galería.`;
+      }
+    }
+
+    document.getElementById('btn-flip').addEventListener('click', () => {
+      state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+      startCamera();
+    });
+
+    function drawRoundedRectPath(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    // --- Estampado de Logo Quetza Geo (PNG o Insignia Tipográfica Completa) ---
+    function drawBrandLogoOnPhoto(ctx, x, y, photoWidth) {
+      if (safeBrandLogoImg && safeBrandLogoImg.naturalWidth > 0) {
+        try {
+          const aspect = safeBrandLogoImg.naturalHeight / safeBrandLogoImg.naturalWidth;
+          const logoW = Math.max(150, Math.round(photoWidth * 0.23));
+          const logoH = Math.round(logoW * aspect);
+          const framePad = Math.max(4, Math.round(logoW * 0.03));
+
+          ctx.save();
+          ctx.fillStyle = 'rgba(3, 7, 9, 0.90)';
+          drawRoundedRectPath(ctx, x, y, logoW + framePad * 2, logoH + framePad * 2, 12);
+          ctx.fill();
+          ctx.strokeStyle = '#00f5d4';
+          ctx.lineWidth = Math.max(2, Math.round(photoWidth * 0.002));
+          ctx.stroke();
+
+          ctx.clip();
+          ctx.drawImage(safeBrandLogoImg, x + framePad, y + framePad, logoW, logoH);
+          ctx.restore();
+          return;
+        } catch (_) {
+          ctx.restore();
+        }
+      }
+
+      // Insignia oficial vectorial QUETZA GEO con isotipo + texto
+      const badgeW = Math.max(210, Math.round(photoWidth * 0.26));
+      const badgeH = Math.round(badgeW * 0.28);
+      const pad = Math.round(badgeH * 0.16);
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(3, 7, 9, 0.88)';
+      drawRoundedRectPath(ctx, x, y, badgeW, badgeH, Math.round(badgeH * 0.22));
+      ctx.fill();
+      ctx.strokeStyle = '#00f5d4';
+      ctx.lineWidth = Math.max(2, Math.round(photoWidth * 0.002));
+      ctx.stroke();
+
+      // Icono cámara + pin cian
+      const iconSize = badgeH - pad * 2;
+      const ix = x + pad;
+      const iy = y + pad;
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = Math.max(2, iconSize * 0.07);
+      drawRoundedRectPath(ctx, ix, iy + iconSize * 0.18, iconSize, iconSize * 0.72, iconSize * 0.14);
+      ctx.stroke();
+
+      ctx.fillStyle = '#00f5d4';
+      ctx.beginPath();
+      ctx.arc(ix + iconSize * 0.5, iy + iconSize * 0.48, iconSize * 0.15, Math.PI, 0);
+      ctx.lineTo(ix + iconSize * 0.5, iy + iconSize * 0.78);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tipografía QUETZA GEO
+      const tx = ix + iconSize + pad * 0.9;
+      const titleFont = Math.max(13, Math.round(badgeH * 0.36));
+      const subFont = Math.max(7, Math.round(badgeH * 0.15));
+
+      ctx.textBaseline = 'top';
+      ctx.font = `900 ${titleFont}px sans-serif`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('QUETZA', tx, y + pad * 1.1);
+      const quetzaW = ctx.measureText('QUETZA ').width;
+      ctx.fillStyle = '#00f5d4';
+      ctx.fillText('GEO', tx + quetzaW, y + pad * 1.1);
+
+      ctx.font = `600 ${subFont}px sans-serif`;
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText('EVIDENCIA FOTOGRÁFICA INTELIGENTE', tx, y + pad * 1.2 + titleFont * 1.12);
+
+      ctx.restore();
+    }
+
+    function drawQRCodeOnCanvas(ctx, payloadText, x, y, qrSize) {
+      const matrix = InlineQR.generateMatrix(payloadText);
+      const count = matrix.length;
+      const quietZone = 3;
+      const totalModules = count + quietZone * 2;
+      const cellSize = qrSize / totalModules;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(Math.floor(x), Math.floor(y), Math.ceil(qrSize), Math.ceil(qrSize));
+
+      ctx.fillStyle = '#000000';
+      for (let r = 0; r < count; r++) {
+        for (let c = 0; c < count; c++) {
+          if (matrix[r][c] === 1) {
+            const px = Math.floor(x + (c + quietZone) * cellSize);
+            const py = Math.floor(y + (r + quietZone) * cellSize);
+            const pw = Math.ceil(x + (c + quietZone + 1) * cellSize) - px;
+            const ph = Math.ceil(y + (r + quietZone + 1) * cellSize) - py;
+            ctx.fillRect(px, py, pw, ph);
+          }
+        }
+      }
+    }
+
+    function wrapTextLines(ctx, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let current = words[0] || '';
+      for (let i = 1; i < words.length; i++) {
+        const test = current + ' ' + words[i];
+        if (ctx.measureText(test).width <= maxWidth) {
+          current = test;
+        } else {
+          lines.push(current);
+          current = words[i];
+        }
+      }
+      lines.push(current);
+      return lines;
+    }
+
+    async function captureAndStamp() {
+      if (btnCapture.disabled || !video.videoWidth || !video.videoHeight) return;
+
+      btnCapture.disabled = true;
+      btnCaptureLabel.textContent = 'Imprimiendo Sello Forense...';
+
+      try {
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+
+        const rawCanvas = document.createElement('canvas');
+        rawCanvas.width = width;
+        rawCanvas.height = height;
+        rawCanvas.getContext('2d').drawImage(video, 0, 0, width, height);
+
+        const sha256Original = await computeSHA256FromCanvas(rawCanvas);
+
+        const uniqueId = generateUniqueId();
+        const deviceDate = new Date();
+        const serverDate = new Date(deviceDate.getTime() + state.serverOffsetMs);
+
+        const deviceTimeStr = formatDateTime(deviceDate);
+        const serverTimeStr = formatDateTime(serverDate);
+        const coordsStr = `${state.lat.toFixed(6)}, ${state.lon.toFixed(6)}`;
+        const accuracyStr = `±${state.accuracy} m`;
+        const coloniaStr = state.colonia;
+        const municipioStr = state.municipio;
+        const mapsUrl = `https://www.google.com/maps?q=${state.lat.toFixed(6)},${state.lon.toFixed(6)}`;
+
+        state.capturedRecord = {
+          uniqueId,
+          deviceTimeStr,
+          serverTimeStr,
+          coordsStr,
+          accuracyStr,
+          coloniaStr,
+          municipioStr,
+          sha256Original,
+          mapsUrl
+        };
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(rawCanvas, 0, 0, width, height);
+
+        const pad = Math.round(width * 0.024);
+        const titleSize = Math.max(15, Math.round(width * 0.021));
+        const highlightSize = Math.max(14, Math.round(width * 0.0185));
+        const textSize = Math.max(12, Math.round(width * 0.016));
+        const monoSmall = Math.max(10, Math.round(width * 0.013));
+        const lineStep = Math.round(highlightSize * 1.36);
+
+        const qrSize = Math.max(148, Math.round(width * 0.205));
+        const textMaxWidth = width - qrSize - pad * 3;
+
+        const lines = [
+          {
+            text: `QUETZA GEO • ID: ${uniqueId}`,
+            font: `bold ${titleSize}px monospace`,
+            color: '#00f5d4'
+          },
+          {
+            text: `Dispositivo: ${deviceTimeStr}  |  Servidor: ${serverTimeStr}`,
+            font: `${textSize}px monospace`,
+            color: '#f8fafc'
+          }
+        ];
+
+        ctx.font = `bold ${highlightSize}px sans-serif`;
+        wrapTextLines(ctx, `Colonia: ${coloniaStr}`, textMaxWidth).forEach((l) => {
+          lines.push({ text: l, font: `bold ${highlightSize}px sans-serif`, color: '#fde047' });
+        });
+
+        wrapTextLines(ctx, `Municipio: ${municipioStr}`, textMaxWidth).forEach((l) => {
+          lines.push({ text: l, font: `bold ${highlightSize}px sans-serif`, color: '#ffffff' });
+        });
+
+        lines.push({
+          text: `GPS: ${coordsStr}  |  Precisión: ${accuracyStr}`,
+          font: `bold ${textSize}px monospace`,
+          color: '#38bdf8'
+        });
+
+        const shaPart1 = sha256Original.slice(0, 32);
+        const shaPart2 = sha256Original.slice(32);
+        lines.push({
+          text: `SHA-256: ${shaPart1}`,
+          font: `${monoSmall}px monospace`,
+          color: '#34d399'
+        });
+        lines.push({
+          text: `         ${shaPart2}`,
+          font: `${monoSmall}px monospace`,
+          color: '#34d399'
+        });
+
+        const textBlockHeight = lines.length * lineStep;
+        const qrLabelHeight = Math.round(monoSmall * 1.45);
+        const contentHeight = Math.max(textBlockHeight, qrSize + qrLabelHeight);
+        const bandHeight = contentHeight + pad * 1.7;
+        const bandY = height - bandHeight;
+
+        ctx.fillStyle = 'rgba(3, 7, 9, 0.87)';
+        ctx.fillRect(0, bandY, width, bandHeight);
+
+        ctx.fillStyle = '#00f5d4';
+        ctx.fillRect(0, bandY, width, Math.max(3, Math.round(height * 0.004)));
+
+        drawBrandLogoOnPhoto(ctx, pad, pad, width);
+
+        ctx.textBaseline = 'top';
+        let cursorY = bandY + pad * 0.85;
+        lines.forEach((item) => {
+          ctx.font = item.font;
+          ctx.fillStyle = item.color;
+          ctx.fillText(item.text, pad, cursorY);
+          cursorY += lineStep;
+        });
+
+        // Payload compacto para QR de alta legibilidad
+        const qrPayload = [
+          `QUETZA GEO`,
+          `ID:${uniqueId}`,
+          `COL:${coloniaStr}`,
+          `MUN:${municipioStr}`,
+          `DEV:${deviceTimeStr}`,
+          `SRV:${serverTimeStr}`,
+          `GPS:${coordsStr} (${accuracyStr})`,
+          `SHA256:${sha256Original}`
+        ].join('\n');
+
+        const qrX = width - qrSize - pad;
+        const qrY = bandY + pad * 0.85;
+        drawQRCodeOnCanvas(ctx, qrPayload, qrX, qrY, qrSize);
+
+        ctx.font = `bold ${monoSmall}px monospace`;
+        ctx.fillStyle = '#00f5d4';
+        ctx.textAlign = 'center';
+        ctx.fillText('VERIFICAR QR', qrX + qrSize / 2, qrY + qrSize + 4);
+        ctx.textAlign = 'left';
+
+        document.getElementById('meta-id').textContent = uniqueId;
+        document.getElementById('meta-zona').textContent = `${coloniaStr} • ${municipioStr}`;
+        document.getElementById('meta-sha').textContent = sha256Original;
+
+        state.capturedFilename = `${uniqueId}.jpg`;
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              alert('No se pudo exportar el archivo JPG.');
+              evaluateShutterLock();
+              return;
+            }
+            state.capturedBlob = blob;
+            cameraContainer.classList.add('hidden');
+            captureControls.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+            shareControls.classList.remove('hidden');
+            evaluateShutterLock();
+          },
+          'image/jpeg',
+          0.95
+        );
+      } catch (err) {
+        console.error(err);
+        evaluateShutterLock();
+        alert(`Error al generar evidencia: ${err && err.message ? err.message : err}`);
+      }
+    }
+
+    btnCapture.addEventListener('click', captureAndStamp);
+
+    document.getElementById('btn-whatsapp').addEventListener('click', async () => {
+      if (!state.capturedBlob || !state.capturedRecord) return;
+      const r = state.capturedRecord;
+
+      const file = new File([state.capturedBlob], state.capturedFilename, { type: 'image/jpeg' });
+      const shareText = [
+        `🛡️ *QUETZA GEO — Evidencia de Campo*`,
+        `🆔 *ID:* ${r.uniqueId}`,
+        `🏘️ *Colonia:* ${r.coloniaStr}`,
+        `🏙️ *Municipio:* ${r.municipioStr}`,
+        `📱 *Dispositivo:* ${r.deviceTimeStr}`,
+        `🌐 *Servidor:* ${r.serverTimeStr}`,
+        `🎯 *GPS:* ${r.coordsStr} (${r.accuracyStr})`,
+        `🔐 *SHA-256:* \`${r.sha256Original}\``,
+        `🗺️ *Mapa:* ${r.mapsUrl}`
+      ].join('\n');
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Quetza Geo ${r.uniqueId}`,
+            text: shareText
+          });
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            alert('No se pudo abrir WhatsApp directo. Usa "Descargar JPG".');
+          }
+        }
+      } else {
+        alert('Descarga la imagen con "Descargar JPG" y adjúntala en WhatsApp.');
+      }
+    });
+
+    document.getElementById('btn-download').addEventListener('click', () => {
+      if (!state.capturedBlob) return;
+      const url = URL.createObjectURL(state.capturedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = state.capturedFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    document.getElementById('btn-retake').addEventListener('click', () => {
+      state.capturedBlob = null;
+      state.capturedRecord = null;
+      previewContainer.classList.add('hidden');
+      shareControls.classList.add('hidden');
+      cameraContainer.classList.remove('hidden');
+      captureControls.classList.remove('hidden');
+      evaluateShutterLock();
+    });
+
+    // Arrancar servicios
+    syncServerClock();
+    startGPS();
+    startCamera();
+  </script>
+</body>
+</html>
