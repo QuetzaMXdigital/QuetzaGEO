@@ -1351,12 +1351,9 @@
 
       const file = new File([state.capturedBlob], state.capturedFilename, { type: 'image/jpeg' });
       const shareText = [
-        `🛡️ *QUETZA GEO — Evidencia de Campo*`,
-        `🆔 *ID:* ${r.uniqueId}`,
-        `🏘️ *Colonia:* ${r.coloniaStr}`,
-        `🏙️ *Municipio:* ${r.municipioStr}`,
-        `📅 *Fecha/Hora:* ${r.deviceTimeStr} (Servidor: ${r.serverTimeStr})`,
-        `🗺️ *Mapa:* ${r.mapsUrl}`
+        `🛡️ QUETZA GEO — Evidencia de Campo`,
+        `Fecha/Hora: ${r.deviceTimeStr} (Servidor: ${r.serverTimeStr})`,
+        `🗺️ Mapa: ${r.mapsUrl}`
       ].join('\n');
 
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
